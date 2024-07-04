@@ -1,1 +1,3 @@
-echo "<?php echo 'Hello, ECS!'; ?>" > index.php
+<?php
+echo "Hello, ECS!";
+?>
