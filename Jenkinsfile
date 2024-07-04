@@ -5,10 +5,10 @@ pipeline {
         IMAGE_NAME = 'php-app-img' // Desired image name
         AWS_REGION = 'us-east-1' // Correct AWS region
         ECS_CLUSTER_NAME = 'ecs-php' // Replace with your ECS cluster name
-        ECS_SERVICE_NAME = 'My-service' // Replace with your ECS service name
+        ECS_SERVICE_NAME = 'my-service' // Replace with your ECS service name
     }
     parameters {
-        string(name: 'ENVIRONMENT_NAME', defaultValue: 'My-img', description: 'Environment name')
+        string(name: 'ENVIRONMENT_NAME', defaultValue: 'my-img2', description: 'Environment name')
         string(name: 'DOCKER_TAG', defaultValue: 'latest', description: 'Docker image tag')
         string(name: 'ECR_URL', defaultValue: '736116236436.dkr.ecr.us-east-1.amazonaws.com', description: 'ECR repository URL')
     }
