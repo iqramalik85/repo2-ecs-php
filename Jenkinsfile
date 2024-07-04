@@ -1,37 +1,59 @@
 pipeline {
     agent any
     environment {
-        AWS_REGION = '<us-east-1>'
-        ECR_REPO = '736116236436.dkr.ecr.us-east-1.amazonaws.com/php-app-image'
-        ECS_CLUSTER = 'ecs-php'
-        ECS_SERVICE = 'php-service'
+        ECR_REPO = '736116236436.dkr.ecr.us-east-1.amazonaws.com' // ECR repository URL
+        IMAGE_NAME = 'php-app-img' // Desired image name
+        AWS_REGION = 'us-east-1' // Correct AWS region
+        ECS_CLUSTER_NAME = 'ecs-php' // Replace with your ECS cluster name
+        ECS_SERVICE_NAME = 'My-service' // Replace with your ECS service name
+    }
+    parameters {
+        string(name: 'ENVIRONMENT_NAME', defaultValue: 'My-img', description: 'Environment name')
+        string(name: 'DOCKER_TAG', defaultValue: 'latest', description: 'Docker image tag')
+        string(name: 'ECR_URL', defaultValue: '736116236436.dkr.ecr.us-east-1.amazonaws.com', description: 'ECR repository URL')
     }
     stages {
-        stage('Checkout') {
+        stage('Clone Repository') {
             steps {
-                git 'https://github.com/iqramalik85/repo2-ecs-php.git'
+                deleteDir()
+                git credentialsId: 'GITHUB-CREDENTIALS', url: 'https://github.com/iqramalik85/repo2-ecs-php.git', branch: 'main'
             }
         }
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    dockerImage = docker.build("php-dummy-app")
-                }
+        stage('Create new ECR repository') {
+            environment {
+                AWS_DEFAULT_REGION = 'us-east-1'
             }
-        }
-        stage('Login to Amazon ECR') {
             steps {
                 script {
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                        sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO}"
+                    try {
+                        sh "aws ecr create-repository --repository-name ${params.ENVIRONMENT_NAME}"
+                    } catch (Exception e) {
+                        echo "Repository ${params.ENVIRONMENT_NAME} already exists. Skipping repository creation."
                     }
                 }
             }
         }
-        stage('Push Docker Image to ECR') {
+        stage('Push new image to ECR') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${params.ECR_URL}"
+                    sh "docker build -t ${params.ECR_URL}/${params.ENVIRONMENT_NAME}:${params.DOCKER_TAG} ."
+                    sh "docker push ${params.ECR_URL}/${params.ENVIRONMENT_NAME}:${params.DOCKER_TAG}"
+                }
+            }
+        }
+        stage('Ensure ECS Cluster Exists') {
             steps {
                 script {
-                    dockerImage.push('latest')
+                    try {
+                        sh "aws ecs describe-clusters --clusters ${env.ECS_CLUSTER_NAME}"
+                    } catch (Exception e) {
+                        echo "ECS cluster ${env.ECS_CLUSTER_NAME} does not exist. Creating it now."
+                        sh "aws ecs create-cluster --cluster-name ${env.ECS_CLUSTER_NAME}"
+                    }
                 }
             }
         }
@@ -39,7 +61,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                    aws ecs update-service --cluster ${ECS_CLUSTER} --service ${ECS_SERVICE} --force-new-deployment
+                    aws ecs update-service --cluster ${env.ECS_CLUSTER_NAME} --service ${env.ECS_SERVICE_NAME} --force-new-deployment
                     """
                 }
             }
