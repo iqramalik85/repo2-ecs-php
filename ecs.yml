@@ -2,6 +2,7 @@
 - name: Deploy ECS Task and Service with EC2
   hosts: localhost
   gather_facts: False
+  become: yes
   vars:
     aws_region: "us-east-1"
     ecs_cluster_name: "ecs-php"
