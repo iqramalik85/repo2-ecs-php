@@ -28,9 +28,9 @@
               - containerPort: "{{ task_definition_container_port }}"
             environment:
               AWS_ACCESS_KEY_ID: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
-        AWS_SECRET_ACCESS_KEY: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
-        AWS_DEFAULT_REGION: "{{ aws_region }}"
-      ignore_errors: yes
+              AWS_SECRET_ACCESS_KEY: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
+              AWS_DEFAULT_REGION: "{{ aws_region }}"
+            ignore_errors: yes
             networkMode: "{{ task_definition_network_mode }}"
             executionRoleArn: "{{ task_definition_execution_role_arn }}"
             taskRoleArn: "{{ task_definition_task_role_arn }}"
