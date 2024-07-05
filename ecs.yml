@@ -1,60 +1,62 @@
-{
-  "family": "mytask",
-  "containerDefinitions": [
-    {
-      "name": "php-app-container",
-      "image": "y736116236436.dkr.ecr.us-east-1.amazonaws.com/my-img2:latest",
-      "cpu": 256,
-      "memory": 512,
-      "essential": true,
-      "portMappings": [
-        {
-          "containerPort": 80,
-          "hostPort": 80
-        }
-      ],
-      "environment": [
-        {
-          AWS_ACCESS_KEY_ID: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
+---
+- name: Deploy PHP Application to ECS
+  hosts: localhost
+  gather_facts: false
+  vars:
+    aws_region: "us-east-1"
+    ecr_repository_name: "my-img2"
+    cluster_name: "ecs-php"
+    service_name: "myecs-service"
+    task_definition_family: "my-task-definition"
+    task_definition_container_name: "php-app-container"
+    task_definition_container_port: 80
+    task_definition_network_mode: "awsvpc"
+    task_definition_execution_role_arn: "arn:aws:iam::736116236436:role/ecsTaskExecutionRole"
+    task_definition_task_role_arn: "arn:aws:iam::736116236436:role/ECS-SecretAccessRole"
+    task_definition_image: "736116236436.dkr.ecr.us-east-1.amazonaws.com/my-img2:latest"
+
+  tasks:
+    - name: Create ECS Task Definition
+      ecs_taskdefinition:
+        family: "{{ task_definition_family }}"
+        container_definitions:
+          - name: "{{ task_definition_container_name }}"
+            image: "{{ task_definition_image }}"
+            cpu: 256
+            memory: 512
+            portMappings:
+              - containerPort: "{{ task_definition_container_port }}"
+            environment:
+              AWS_ACCESS_KEY_ID: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
         AWS_SECRET_ACCESS_KEY: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
         AWS_DEFAULT_REGION: "{{ aws_region }}"
-      ignore_errors: yes  # Ignore errors if the cluster already exists
-        }
-      ]
-    }
-  ],
-  "requiresCompatibilities": [
-    "EC2"
-  ],
-  "networkMode": "bridge",
-  "executionRoleArn": "arn:aws:iam::736116236436:role/ecsTaskExecutionRole",
-  "taskRoleArn": "arn:aws:iam::736116236436:role/ecsTaskExecutionRole",
-  "volumes": [],
-  "placementConstraints": [],
-  "memory": "1024",
-  "cpu": "512",
-  "services": [
-    {
-      "serviceName": "php-app-service",
-      "taskDefinition": "php-app-task",
-      "cluster": "ecs-php",
-      "desiredCount": 1,
-      "launchType": "EC2",
-      "networkConfiguration": {
-        "awsvpcConfiguration": {
-          "subnets": [
-            subnets:
-            - "subnet-095be323bd97dc9a4"
-            - "subnet-0c8e1eaaaff0a0726"
-            - "subnet-0e3db30d9fdcb6414"
-            - "subnet-04b85618616f2da9d"
-            - "subnet-0925766f7ff391b44"
-          security_groups:
-            - "sg-0a85d937517e6a7b1"
-          ]
-        }
-      },
-      "platformVersion": "LATEST"
-    }
-  ]
-}
+      ignore_errors: yes
+            networkMode: "{{ task_definition_network_mode }}"
+            executionRoleArn: "{{ task_definition_execution_role_arn }}"
+            taskRoleArn: "{{ task_definition_task_role_arn }}"
+        region: "{{ aws_region }}"
+      register: task_definition_result
+
+    - name: Debug Task Definition Result
+      debug:
+        var: task_definition_result
+
+    - name: Register ECS Task Definition ARN
+      set_fact:
+        task_definition_arn: "{{ task_definition_result.task_definition.taskDefinitionArn }}"
+      when: task_definition_result.changed
+
+    - name: Create ECS Service
+      ecs_service:
+        state: present
+        cluster: "{{ cluster_name }}"
+        service_name: "{{ service_name }}"
+        task_definition: "{{ task_definition_arn }}"
+        desired_count: 1
+        launch_type: EC2
+        region: "{{ aws_region }}"
+      register: ecs_service_result
+
+    - name: Debug ECS Service Result
+      debug:
+        var: ecs_service_result
