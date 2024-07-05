@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         ECR_REPO = '736116236436.dkr.ecr.us-east-1.amazonaws.com' // ECR repository URL
-        IMAGE_NAME = 'php-app-img' // Desired image name
+        IMAGE_NAME = 'my-img2' // Desired image name
         AWS_REGION = 'us-east-1' // Correct AWS region
         ECS_CLUSTER_NAME = 'ecs-php' // Replace with your ECS cluster name
         ECS_SERVICE_NAME = 'my-service' // Replace with your ECS service name
