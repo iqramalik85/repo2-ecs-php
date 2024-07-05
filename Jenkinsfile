@@ -5,7 +5,7 @@ pipeline {
         IMAGE_NAME = 'my-img2' // Desired image name
         AWS_REGION = 'us-east-1' // Correct AWS region
         ECS_CLUSTER_NAME = 'ecs-php' // Replace with your ECS cluster name
-        ECS_SERVICE_NAME = 'my-service' // Replace with your ECS service name
+        ECS_SERVICE_NAME = 'myecs-service' // Replace with your ECS service name
     }
     parameters {
         string(name: 'ENVIRONMENT_NAME', defaultValue: 'my-img2', description: 'Environment name')
